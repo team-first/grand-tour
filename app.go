@@ -35,6 +35,7 @@ type User struct {
 
 var authenticator *strava.OAuthAuthenticator
 var db *sql.DB
+var templates = template.Must(template.ParseGlob("templates/*"))
 
 func readConfig(filename string) (Config, error) {
 	var config Config
@@ -66,8 +67,11 @@ func readConfig(filename string) (Config, error) {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	url := authenticator.AuthorizationURL("state1", strava.Permissions.Public, true)
 	params := &Params{Url: url}
-	t, _ := template.ParseFiles("templates/index.html")
-	t.Execute(w, params)
+	err := templates.ExecuteTemplate(w, "index", params)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func main() {
@@ -133,9 +137,9 @@ func createUser(id int64) error {
 }
 
 func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("templates/success.html")
+	var err error
 
-	err := createUser(auth.Athlete.Id)
+	err = createUser(auth.Athlete.Id)
 
 	if err != nil {
 		// TODO
@@ -144,11 +148,15 @@ func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *
 
 	user := &User{FirstName: auth.Athlete.FirstName}
 
-	t.Execute(w, user)
+	err = templates.ExecuteTemplate(w, "success", user)
+
+	if err != nil {
+		// TODO
+		log.Fatal(err)
+	}
 }
 
 func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
 	// TODO show error message
-	t, _ := template.ParseFiles("templates/failure.html")
-	t.Execute(w, nil)
+	templates.ExecuteTemplate(w, "failure", nil)
 }
