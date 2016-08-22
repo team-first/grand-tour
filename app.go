@@ -66,6 +66,7 @@ func readConfig(filename string) (Config, error) {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	url := authenticator.AuthorizationURL("state1", strava.Permissions.Public, true)
+	log.Println("In indexhandler")
 	params := &Params{Url: url}
 	err := templates.ExecuteTemplate(w, "index", params)
 
@@ -147,7 +148,7 @@ func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *
 	}
 
 	user := &User{FirstName: auth.Athlete.FirstName}
-
+	log.Println("OAuthSuccess")
 	err = templates.ExecuteTemplate(w, "success", user)
 
 	if err != nil {
@@ -158,5 +159,6 @@ func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *
 
 func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
 	// TODO show error message
+	log.Println("OAuth Failure")
 	templates.ExecuteTemplate(w, "failure", nil)
 }
