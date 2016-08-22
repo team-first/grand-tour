@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"database/sql"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
@@ -27,7 +29,12 @@ type Params struct {
 	Url string
 }
 
+type User struct {
+	FirstName string
+}
+
 var authenticator *strava.OAuthAuthenticator
+var db *sql.DB
 
 func readConfig(filename string) (Config, error) {
 	var config Config
@@ -73,6 +80,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	db, err = sql.Open("sqlite3", "./app.db")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	strava.ClientId = config.Id
 	strava.ClientSecret = config.Secret
 
@@ -89,9 +102,49 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
 }
 
+func createUser(id int64) error {
+	var exists bool
+	var err error
+
+	err = db.QueryRow("select exists(select 1 from users where id = ?)", id).Scan(&exists)
+
+	if err != nil {
+		return err
+	}
+
+	// Create the user if they don't exist
+	// TODO race condition
+	if !exists {
+		statement, err := db.Prepare("insert into users (id) values (?)")
+
+		if err != nil {
+			return err
+		}
+
+		// Create the user
+		_, err = statement.Exec(id)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
 func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *http.Request) {
 	t, _ := template.ParseFiles("templates/success.html")
-	t.Execute(w, nil)
+
+	err := createUser(auth.Athlete.Id)
+
+	if err != nil {
+		// TODO
+		log.Fatal(err)
+	}
+
+	user := &User{FirstName: auth.Athlete.FirstName}
+
+	t.Execute(w, user)
 }
 
 func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
