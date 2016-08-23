@@ -26,6 +26,8 @@ page. The file should have the following contents:
 ```toml
 # config.toml
 
+secret = "it's a secret"
+
 [strava]
 id = 123
 secret = "baaaaaad"

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/gorilla/sessions"
 	"github.com/strava/go.strava"
 	"html/template"
 	"log"
@@ -22,6 +23,7 @@ const (
 type Config struct {
 	Host   string
 	Port   int
+	Secret string
 	Strava Strava
 }
 
@@ -41,6 +43,7 @@ type User struct {
 var authenticator *strava.OAuthAuthenticator
 var db *sql.DB
 var templates = template.Must(template.ParseGlob("templates/*"))
+var store *sessions.CookieStore
 
 func readConfig(filename string) (Config, error) {
 	var config Config
@@ -66,7 +69,9 @@ func readConfig(filename string) (Config, error) {
 		config.Port = defaultPort
 	}
 
-	if config.Strava.Id == 0 {
+	if config.Secret == "" {
+		err = errors.New("secret is required!")
+	} else if config.Strava.Id == 0 {
 		err = errors.New("[strava] id is required!")
 	} else if config.Strava.Secret == "" {
 		err = errors.New("[strava] secret is required!")
@@ -101,6 +106,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	store = sessions.NewCookieStore([]byte(config.Secret))
 
 	strava.ClientId = config.Strava.Id
 	strava.ClientSecret = config.Strava.Secret
