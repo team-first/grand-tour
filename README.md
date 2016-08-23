@@ -54,5 +54,4 @@ us.
 
 
 ## Additional Notes
-Issue / Feature / Roadmap tracking on [Trello](https://trello.com/b/DKVpD6aW) if
-we care.
+Issue / Feature / Roadmap tracking on our [Trello board](https://trello.com/b/DKVpD6aW).
