@@ -102,8 +102,9 @@ func main() {
 	path, err := authenticator.CallbackPath()
 
 	http.HandleFunc(path, authenticator.HandlerFunc(oAuthSuccess, oAuthFailure))
-
 	http.HandleFunc("/", indexHandler)
+	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
+	log.Println(fmt.Sprintf("Listening at http://%s:%d", config.Host, config.Port))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
 }
 

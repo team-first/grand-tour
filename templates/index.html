@@ -1,9 +1,18 @@
 {{define "index"}}
   {{template "header"}}
 
-  <a href="{{.Url}}">
-    <img src="http://strava.github.io/api/images/ConnectWithStrava.png" />
-  </a>
+<div class="body" id="narrow">
+    <h1 class="banner">Grand Tour</h1>
+
+    <p class="centered">This is currently a work in progress and has accounts
+    <b>only for selected testers</b>.</p>
+    <p class="centered">If you are one of those testers, please click below to
+    continue.</p>
+
+    <p class="centered"><center><a href="{{.Url}}">
+        <img src="http://strava.github.io/api/images/ConnectWithStrava.png" />
+    </a></center></p>
+</div>
 
   {{template "footer"}}
 {{end}}
