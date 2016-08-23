@@ -19,10 +19,14 @@ const (
 )
 
 type Config struct {
-	Id     int
-	Secret string
 	Host   string
 	Port   int
+	Strava Strava
+}
+
+type Strava struct {
+	Id     int
+	Secret string
 }
 
 type Params struct {
@@ -91,8 +95,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	strava.ClientId = config.Id
-	strava.ClientSecret = config.Secret
+	strava.ClientId = config.Strava.Id
+	strava.ClientSecret = config.Strava.Secret
 
 	authenticator = &strava.OAuthAuthenticator{
 		CallbackURL:            fmt.Sprintf("http://%s:%d/callback", config.Host, config.Port),
