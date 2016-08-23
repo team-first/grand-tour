@@ -7,7 +7,8 @@ A quick and dirty collaborative test of Strava's API. Do not use.
 
 Install all dependencies (ensuring `GOPATH` is set):
 
-```go get github.com/BurntSushi/toml
+```bash
+go get github.com/BurntSushi/toml
 go get github.com/mattn/go-sqlite3
 go get github.com/strava/go.strava
 ```
@@ -30,7 +31,9 @@ secret = "baaaaaad"
 
 Launch the server:
 
-```go run app.go```
+```bash
+go run app.go
+```
 
 Connect at `localhost:8080`.
 
