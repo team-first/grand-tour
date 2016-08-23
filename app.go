@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/BurntSushi/toml"
@@ -63,6 +64,12 @@ func readConfig(filename string) (Config, error) {
 
 	if config.Port == 0 {
 		config.Port = defaultPort
+	}
+
+	if config.Strava.Id == 0 {
+		err = errors.New("[strava] id is required!")
+	} else if config.Strava.Secret == "" {
+		err = errors.New("[strava] secret is required!")
 	}
 
 	return config, err
