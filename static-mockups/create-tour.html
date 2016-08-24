@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Grand Tour</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+<div class="body">
+    <h1 class="banner"><a href="landing.html" class="stealth">Grand Tour</a></h1>
+
+    <div class="nav"><nav>
+        <ul>
+        <li><a href="create-tour.html">Create Tour</a></li>
+        <li><a href="search-tours.html">View My Tours</a></li>
+        <li><a href="search-tours.html">Explore Tours</a></li>
+        </ul>
+    </nav></div>
+    <div class="content">
+        <h3>Enter an activity URL</h3>
+        <form>
+            <input type="input" name="activity_url" />
+        </form>
+
+        <h3>Segments</h3>
+        <form>
+            <table class="segment_list">
+                <tr>
+                    <th>Segment</th>
+                    <th>Time</th>
+                    <th>Include in Tour?</th>
+                </tr>
+                <tr>
+                    <td>Segment 1</td>
+                    <td>13:37</td>
+                    <td><input type="checkbox" name="segment1_cb" />
+                </tr>
+                <tr>
+                    <td>Segment 2</td>
+                    <td>20:16</td>
+                    <td><input type="checkbox" name="segment2_cb" />
+                </tr>
+                <tr>
+                    <td>Segment 3</td>
+                    <td>00:42</td>
+                    <td><input type="checkbox" name="segment3_cb" />
+                </tr>
+            </table>
+            <input type="submit" value="" name="segment_submit" title="Create Tour" style="background:url(images/just-do-it.jpg) no-repeat; width: 215px; height: 122px;" />
+        </form>
+    </div>
+</div>
+</body>
+</html>
