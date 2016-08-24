@@ -11,6 +11,8 @@ Install all dependencies (ensuring `GOPATH` is set):
 go get github.com/BurntSushi/toml
 go get github.com/mattn/go-sqlite3
 go get github.com/strava/go.strava
+go get github.com/gorilla/context
+go get github.com/gorilla/sessions
 ```
 
 Create the database:
