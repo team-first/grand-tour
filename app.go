@@ -19,6 +19,7 @@ import (
 const (
 	defaultHost string = "localhost"
 	defaultPort int    = 8080
+	sessionName string = "grand-tour"
 )
 
 type Config struct {
@@ -33,11 +34,13 @@ type Strava struct {
 	Secret string
 }
 
-type Params struct {
-	Url string
+type Page struct {
+	User *User
+	LoginUrl string
 }
 
 type User struct {
+	Id int64
 	FirstName string
 }
 
@@ -81,11 +84,48 @@ func readConfig(filename string) (Config, error) {
 	return config, err
 }
 
+func getCurrentUser(r *http.Request) (user *User, err error) {
+	session, err := store.Get(r, sessionName)
+
+	if err != nil {
+		return user, err
+	}
+
+	id, ok := session.Values["id"].(int64)
+
+	if ok {
+		user = new(User)
+		user.Id = id
+	}
+
+	return user, err
+}
+
+func baseHandler(r *http.Request) (Page, error) {
+	var page Page
+	var err error
+
+	page.LoginUrl = authenticator.AuthorizationURL("state1", strava.Permissions.Public, true)
+
+	page.User, err = getCurrentUser(r)
+
+	if err != nil {
+		return page, err
+	}
+
+	return page, err
+}
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	url := authenticator.AuthorizationURL("state1", strava.Permissions.Public, true)
 	log.Println("In indexhandler")
-	params := &Params{Url: url}
-	err := templates.ExecuteTemplate(w, "index", params)
+
+	page, err := baseHandler(r)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = templates.ExecuteTemplate(w, "index", page)
 
 	if err != nil {
 		log.Fatal(err)
@@ -122,6 +162,7 @@ func main() {
 
 	http.HandleFunc(path, authenticator.HandlerFunc(oAuthSuccess, oAuthFailure))
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/logout", logoutHandler)
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
 	log.Println(fmt.Sprintf("Listening at http://%s:%d", config.Host, config.Port))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), context.ClearHandler(http.DefaultServeMux)))
@@ -167,9 +208,24 @@ func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *
 		log.Fatal(err)
 	}
 
-	user := &User{FirstName: auth.Athlete.FirstName}
+	session, err := store.Get(r, sessionName)
+
+	if err != nil {
+		// TODO
+		log.Fatal(err)
+	}
+
+	session.Values["id"] = auth.Athlete.Id
+	session.Save(r, w)
+
+	page, err := baseHandler(r)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("OAuthSuccess")
-	err = templates.ExecuteTemplate(w, "success", user)
+	err = templates.ExecuteTemplate(w, "success", page)
 
 	if err != nil {
 		// TODO
@@ -181,4 +237,20 @@ func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
 	// TODO show error message
 	log.Println("OAuth Failure")
 	templates.ExecuteTemplate(w, "failure", nil)
+}
+
+// TODO only POST
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	session, err := store.Get(r, sessionName)
+
+	if err != nil {
+		// TODO
+		log.Fatal(err)
+	}
+
+	delete(session.Values, "id")
+
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/", http.StatusFound)
 }

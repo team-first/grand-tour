@@ -9,10 +9,14 @@
     <p class="centered">If you are one of those testers, please click below to
     continue.</p>
 
-    <p class="centered"><center><a href="{{.Url}}">
+    <p class="centered"><center><a href="{{.LoginUrl}}">
         <img src="http://strava.github.io/api/images/ConnectWithStrava.png" />
     </a></center></p>
 </div>
+
+<pre>
+User.Id = {{if .User}}{{.User.Id}}{{else}}-1{{end}}
+</pre>
 
   {{template "footer"}}
 {{end}}
