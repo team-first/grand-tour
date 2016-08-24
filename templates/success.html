@@ -4,8 +4,6 @@
 <div class="body">
     <h1 class="banner">Grand Tour</h1>
 
-    <p>Hello {{.FirstName}}!</p>
-
     <h2><span class="icon green_icon"></span>Green Results Leaderboard</h2>
 
     <!-- Please auto generate me -->
@@ -64,6 +62,10 @@
         </tr>
     </table>
 </div>
+
+<pre>
+User.Id = {{if .User}}{{.User.Id}}{{else}}-1{{end}}
+</pre>
 
   {{template "footer"}}
 {{end}}
