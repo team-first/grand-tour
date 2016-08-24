@@ -1,6 +1,4 @@
-{{define "index"}}
-  {{template "header"}}
-
+{{define "body"}}
 <div class="body" id="narrow">
     <h1 class="banner">Grand Tour</h1>
 
@@ -13,10 +11,4 @@
         <img src="http://strava.github.io/api/images/ConnectWithStrava.png" />
     </a></center></p>
 </div>
-
-<pre>
-User.Id = {{if .User}}{{.User.Id}}{{else}}-1{{end}}
-</pre>
-
-  {{template "footer"}}
 {{end}}

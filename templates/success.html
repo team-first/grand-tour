@@ -1,6 +1,4 @@
-{{define "success"}}
-  {{template "header"}}
-
+{{define "body"}}
 <div class="body">
     <h1 class="banner">Grand Tour</h1>
 
@@ -62,10 +60,4 @@
         </tr>
     </table>
 </div>
-
-<pre>
-User.Id = {{if .User}}{{.User.Id}}{{else}}-1{{end}}
-</pre>
-
-  {{template "footer"}}
 {{end}}

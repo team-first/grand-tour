@@ -14,12 +14,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 )
 
 const (
 	defaultHost string = "localhost"
 	defaultPort int    = 8080
 	sessionName string = "grand-tour"
+	templateDir string = "templates"
 )
 
 type Config struct {
@@ -35,18 +37,17 @@ type Strava struct {
 }
 
 type Page struct {
-	User *User
+	User     *User
 	LoginUrl string
 }
 
 type User struct {
-	Id int64
+	Id        int64
 	FirstName string
 }
 
 var authenticator *strava.OAuthAuthenticator
 var db *sql.DB
-var templates = template.Must(template.ParseGlob("templates/*"))
 var store *sessions.CookieStore
 
 func readConfig(filename string) (Config, error) {
@@ -101,7 +102,7 @@ func getCurrentUser(r *http.Request) (user *User, err error) {
 	return user, err
 }
 
-func baseHandler(r *http.Request) (Page, error) {
+func getPage(r *http.Request) (Page, error) {
 	var page Page
 	var err error
 
@@ -116,16 +117,31 @@ func baseHandler(r *http.Request) (Page, error) {
 	return page, err
 }
 
+func render(w http.ResponseWriter, filename string, params interface{}) (err error) {
+	bp := path.Join(templateDir, "base.html")
+	fp := path.Join(templateDir, filename)
+
+	t, err := template.ParseFiles(bp, fp)
+
+	if err != nil {
+		return err
+	}
+
+	t.ExecuteTemplate(w, "base", params)
+
+	return err
+}
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("In indexhandler")
 
-	page, err := baseHandler(r)
+	page, err := getPage(r)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = templates.ExecuteTemplate(w, "index", page)
+	err = render(w, "index.html", page)
 
 	if err != nil {
 		log.Fatal(err)
@@ -218,14 +234,15 @@ func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *
 	session.Values["id"] = auth.Athlete.Id
 	session.Save(r, w)
 
-	page, err := baseHandler(r)
+	page, err := getPage(r)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Println("OAuthSuccess")
-	err = templates.ExecuteTemplate(w, "success", page)
+
+	err = render(w, "success.html", page)
 
 	if err != nil {
 		// TODO
@@ -234,9 +251,19 @@ func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *
 }
 
 func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
+	page, err := getPage(r)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// TODO show error message
 	log.Println("OAuth Failure")
-	templates.ExecuteTemplate(w, "failure", nil)
+	err = render(w, "failure.html", page)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // TODO only POST
