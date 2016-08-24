@@ -1,19 +1,19 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/strava/go.strava"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
