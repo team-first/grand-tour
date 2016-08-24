@@ -46,6 +46,17 @@ type User struct {
 	FirstName string
 }
 
+type handler func(http.ResponseWriter, *http.Request) error
+
+// https://blog.golang.org/error-handling-and-go
+func (f handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	err := f(w, r)
+
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+	}
+}
+
 var authenticator *strava.OAuthAuthenticator
 var db *sql.DB
 var store *sessions.CookieStore
@@ -132,20 +143,18 @@ func render(w http.ResponseWriter, filename string, params interface{}) (err err
 	return err
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, r *http.Request) (err error) {
 	log.Println("In indexhandler")
 
 	page, err := getPage(r)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = render(w, "index.html", page)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	return err
 }
 
 func main() {
@@ -176,9 +185,9 @@ func main() {
 
 	path, err := authenticator.CallbackPath()
 
-	http.HandleFunc(path, authenticator.HandlerFunc(oAuthSuccess, oAuthFailure))
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/logout", logoutHandler)
+	http.HandleFunc(path,authenticator.HandlerFunc(oAuthSuccess, oAuthFailure))
+	http.Handle("/", handler(indexHandler))
+	http.Handle("/logout", handler(logoutHandler))
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
 	log.Println(fmt.Sprintf("Listening at http://%s:%d", config.Host, config.Port))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), context.ClearHandler(http.DefaultServeMux)))
@@ -267,12 +276,11 @@ func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
 }
 
 // TODO only POST
-func logoutHandler(w http.ResponseWriter, r *http.Request) {
+func logoutHandler(w http.ResponseWriter, r *http.Request) (err error) {
 	session, err := store.Get(r, sessionName)
 
 	if err != nil {
-		// TODO
-		log.Fatal(err)
+		return err
 	}
 
 	delete(session.Values, "id")
@@ -280,4 +288,6 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/", http.StatusFound)
+
+	return err
 }
