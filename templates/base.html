@@ -15,15 +15,21 @@
 </head>
 
 <body>
-    {{template "body" .}}
+<div class="body">
+    <!-- TODO: Populate this link properly -->
+    <h1 class="banner"><a href="http://localhost:8080" class="stealth">Grand Tour</a></h1>
 
-    <pre>
-        User.Id = {{if .User}}{{.User.Id}}{{else}}-1{{end}}
-    </pre>
+    {{template "nav" .}}
+    <div class="content">
+        {{template "body" .}}
 
-    <form method="post" action="/logout">
-        <button type="submit">Logout</button>
-    </form>
+        <pre>User.Id = {{if .User}}{{.User.Id}}{{else}}-1{{end}}</pre>
+
+        <form method="post" action="/logout">
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+</div>
 </body>
 </html>
 {{end}}
