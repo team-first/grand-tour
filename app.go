@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/strava/go.strava"
 	"html/template"
@@ -123,7 +124,7 @@ func main() {
 	http.HandleFunc("/", indexHandler)
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
 	log.Println(fmt.Sprintf("Listening at http://%s:%d", config.Host, config.Port))
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), context.ClearHandler(http.DefaultServeMux)))
 }
 
 func createUser(id int64) error {
