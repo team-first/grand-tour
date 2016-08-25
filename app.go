@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/BurntSushi/toml"
-	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/strava/go.strava"
@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"time"
 )
 
 const (
@@ -46,15 +47,28 @@ type User struct {
 	FirstName string
 }
 
-type handler func(http.ResponseWriter, *http.Request) error
+type appHandler func(http.ResponseWriter, *http.Request) error
 
 // https://blog.golang.org/error-handling-and-go
-func (f handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := f(w, r)
+func (h appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	err := h(w, r)
 
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 	}
+}
+
+type logHandler struct {
+	handler http.Handler
+}
+
+func LogHandler(h http.Handler) http.Handler {
+	return logHandler{h}
+}
+
+func (h logHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println(fmt.Sprintf("%s %s", r.Method, r.URL))
+	h.handler.ServeHTTP(w, r)
 }
 
 var authenticator *strava.OAuthAuthenticator
@@ -144,8 +158,6 @@ func render(w http.ResponseWriter, filename string, params interface{}) (err err
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) (err error) {
-	log.Println("In indexhandler")
-
 	page, err := getPage(r)
 
 	if err != nil {
@@ -185,12 +197,21 @@ func main() {
 
 	path, err := authenticator.CallbackPath()
 
-	http.HandleFunc(path,authenticator.HandlerFunc(oAuthSuccess, oAuthFailure))
-	http.Handle("/", handler(indexHandler))
-	http.Handle("/logout", handler(logoutHandler))
-	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
+	router := mux.NewRouter()
+	router.Handle(path, authenticator.HandlerFunc(oAuthSuccess, oAuthFailure))
+	router.Handle("/", appHandler(indexHandler))
+	router.Handle("/logout", appHandler(logoutHandler))
+	router.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
+
+	server := &http.Server{
+		Handler:      LogHandler(router),
+		Addr:         fmt.Sprintf("%s:%d", config.Host, config.Port),
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
 	log.Println(fmt.Sprintf("Listening at http://%s:%d", config.Host, config.Port))
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), context.ClearHandler(http.DefaultServeMux)))
+	log.Fatal(server.ListenAndServe())
 }
 
 func createUser(id int64) error {
@@ -224,42 +245,41 @@ func createUser(id int64) error {
 }
 
 func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *http.Request) {
-	var err error
+	err := func() (err error) {
+		err = createUser(auth.Athlete.Id)
 
-	err = createUser(auth.Athlete.Id)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
-		// TODO
-		log.Fatal(err)
-	}
+		session, err := store.Get(r, sessionName)
 
-	session, err := store.Get(r, sessionName)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
-		// TODO
-		log.Fatal(err)
-	}
+		session.Values["id"] = auth.Athlete.Id
+		session.Save(r, w)
 
-	session.Values["id"] = auth.Athlete.Id
-	session.Save(r, w)
+		page, err := getPage(r)
 
-	page, err := getPage(r)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
-		log.Fatal(err)
-	}
+		err = render(w, "success.html", page)
 
-	log.Println("OAuthSuccess")
-
-	err = render(w, "success.html", page)
+		return err
+	}()
 
 	if err != nil {
-		// TODO
-		log.Fatal(err)
+		http.Error(w, err.Error(), 500)
 	}
 }
 
 func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
+	log.Println(err)
+
 	page, err := getPage(r)
 
 	if err != nil {
@@ -267,7 +287,6 @@ func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO show error message
-	log.Println("OAuth Failure")
 	err = render(w, "failure.html", page)
 
 	if err != nil {
