@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/strava/go.strava"
+	"github.com/team-first/grand-tour/core"
+	"github.com/team-first/grand-tour/web"
 	"html/template"
 	"log"
 	"net/http"
@@ -21,7 +22,6 @@ import (
 const (
 	defaultHost string = "localhost"
 	defaultPort int    = 8080
-	sessionName string = "grand-tour"
 	templateDir string = "templates"
 )
 
@@ -38,13 +38,8 @@ type Strava struct {
 }
 
 type Page struct {
-	User     *User
+	User     *core.User
 	LoginUrl string
-}
-
-type User struct {
-	Id        int64
-	FirstName string
 }
 
 type appHandler func(http.ResponseWriter, *http.Request) error
@@ -73,7 +68,6 @@ func (h logHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 var authenticator *strava.OAuthAuthenticator
 var db *sql.DB
-var store *sessions.CookieStore
 
 func readConfig(filename string) (Config, error) {
 	var config Config
@@ -110,30 +104,13 @@ func readConfig(filename string) (Config, error) {
 	return config, err
 }
 
-func getCurrentUser(r *http.Request) (user *User, err error) {
-	session, err := store.Get(r, sessionName)
-
-	if err != nil {
-		return user, err
-	}
-
-	id, ok := session.Values["id"].(int64)
-
-	if ok {
-		user = new(User)
-		user.Id = id
-	}
-
-	return user, err
-}
-
 func getPage(r *http.Request) (Page, error) {
 	var page Page
 	var err error
 
 	page.LoginUrl = authenticator.AuthorizationURL("state1", strava.Permissions.Public, true)
 
-	page.User, err = getCurrentUser(r)
+	page.User, err = web.GetCurrentUser(r)
 
 	if err != nil {
 		return page, err
@@ -185,7 +162,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	store = sessions.NewCookieStore([]byte(config.Secret))
+	web.InitStore([]byte(config.Secret))
 
 	strava.ClientId = config.Strava.Id
 	strava.ClientSecret = config.Strava.Secret
@@ -252,14 +229,8 @@ func oAuthSuccess(auth *strava.AuthorizationResponse, w http.ResponseWriter, r *
 			return err
 		}
 
-		session, err := store.Get(r, sessionName)
-
-		if err != nil {
-			return err
-		}
-
-		session.Values["id"] = auth.Athlete.Id
-		session.Save(r, w)
+		user := &core.User{auth.Athlete.Id, auth.Athlete.FirstName}
+		web.Login(w, r, user)
 
 		page, err := getPage(r)
 
@@ -296,15 +267,11 @@ func oAuthFailure(err error, w http.ResponseWriter, r *http.Request) {
 
 // TODO only POST
 func logoutHandler(w http.ResponseWriter, r *http.Request) (err error) {
-	session, err := store.Get(r, sessionName)
+	err = web.Logout(w, r)
 
 	if err != nil {
 		return err
 	}
-
-	delete(session.Values, "id")
-
-	session.Save(r, w)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 
