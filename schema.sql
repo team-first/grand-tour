@@ -25,6 +25,12 @@ CREATE TABLE tour_segments (
 );
 
 
+CREATE TABLE tour_members (
+       tour_id INT REFERENCES tours(id) on UPDATE CASCADE, -- the tour this person is a rider on
+       athlete_id INT,
+       PRIMARY KEY (tour_id, athlete_id)
+
+);
 -- Now create a tour with some dummy data
 
 insert into tours (id, tour_name, description, creator_user_number, create_tsp) VALUES
